@@ -1,296 +1,763 @@
+/* ==========================================================================
+   K-means visualiser: design system
+   --------------------------------------------------------------------------
+   1. Tokens (colours, type, spacing, motion)
+   2. Base / reset
+   3. Layout grid + background guides
+   4. Typography primitives (display, lead, label, note)
+   5. Components (masthead, figure, readout, panel, controls)
+   6. Sections (hero, story, playground, charts, footer)
+   7. Responsive
+   ========================================================================== */
+
+/* 1. TOKENS ---------------------------------------------------------------- */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Paper and ink */
+  --paper: #f2efe8;
+  --paper-deep: #e8e4da;   /* slightly darker paper, for pressed/filled states */
+  --ink: #1b1a17;          /* near-black, warmer than pure #000 */
+  --ink-2: #55514a;        /* secondary text */
+  --ink-3: #8c877c;        /* tertiary text, muted labels */
+  --rule: var(--ink);                     /* strong 1px rules */
+  --rule-faint: rgba(27, 26, 23, 0.14);   /* dividers inside components */
+  --grid-line: rgba(27, 26, 23, 0.055);   /* background guides, graph paper */
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Cluster palette: six "ink on paper" colours.
+     Chosen to differ in hue AND lightness so they stay distinguishable
+     for most colour-blind viewers, and none of them is neon. */
+  --c1: #b5432c; /* vermilion */
+  --c2: #2b5a80; /* prussian blue */
+  --c3: #5f7a35; /* sap green */
+  --c4: #c38a26; /* ochre */
+  --c5: #6d3a5d; /* aubergine */
+  --c6: #2f8079; /* verdigris */
+  --accent: var(--c1);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Type */
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* clamp(min, preferred, max): sizes scale with the viewport but stay within bounds. */
+  --fs-hero: clamp(2.75rem, 11.5vw, 11rem);
+  --fs-h2: clamp(2.75rem, 6vw, 5.5rem);
+  --fs-h3: clamp(1.875rem, 3vw, 2.75rem);
+  --fs-lead: clamp(1.375rem, 1.9vw, 1.75rem);
+  --fs-body: 1.25rem;       /* Instrument Serif runs small, so body is 20px */
+  --fs-note: 1.0625rem;
+  --fs-data: 0.8125rem;     /* 13px mono numbers */
+  --fs-label: 0.6875rem;    /* 11px mono labels */
+
+  /* Spacing */
+  --margin: clamp(16px, 4vw, 56px);     /* outer page margin */
+  --gutter: clamp(12px, 2vw, 28px);     /* gap between grid columns */
+  --section-space: clamp(96px, 14vw, 208px);
+  --masthead-h: 44px;
+  --max-width: 1440px;
+
+  /* Motion: one easing curve, everywhere. Decelerates, never overshoots. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 160ms;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* 2. BASE ------------------------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
+h1, h2, h3, p, ol, ul, dl, dd, figure {
   margin: 0;
+  padding: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* Instrument Serif ships a single weight. Forcing 400 stops the browser
+   from faking a bold version of it ("faux bold"), which looks smeared. */
+h1, h2, h3 {
+  font-weight: 400;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+ol, ul {
+  list-style: none;
 }
 
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
+a {
+  color: inherit;
+}
+
+canvas {
+  display: block;
+}
+
+/* When a nav link jumps to #id, stop short so the sticky masthead
+   doesn't cover the heading. (Lenis gets the same offset in scroll.js.) */
+[id] {
+  scroll-margin-top: calc(var(--masthead-h) + 24px);
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* 3. LAYOUT GRID ----------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: var(--margin);
+}
+
+/* A 12-column grid. Children place themselves with grid-column. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--gutter);
+}
+
+/* The visible column guides: a fixed layer behind everything,
+   built from the same .container.grid so the lines match the content. */
+.guides {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.guides .grid {
+  height: 100%;
+}
+
+.guides span {
+  border-left: 1px solid var(--grid-line);
+}
+
+.guides span:last-child {
+  border-right: 1px solid var(--grid-line);
+}
+
+/* Everything real sits above the guides. */
+.masthead,
+main,
+.footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* 4. TYPOGRAPHY PRIMITIVES ------------------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+}
+
+.display em {
+  font-style: italic;
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  line-height: 1.3;
+  color: var(--ink);
+  max-width: 30ch;
+}
+
+/* Small mono labels: "FIG. 01", "ITERATION 04" ... */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.label--muted {
+  color: var(--ink-3);
+}
+
+.note {
+  font-size: var(--fs-note);
+  line-height: 1.45;
+  color: var(--ink-2);
+  max-width: 42ch;
+}
+
+.link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.link:hover {
   color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 }
 
+/* 5. COMPONENTS ------------------------------------------------------------ */
+
+/* Masthead: a thin running header, like the top of a journal page. */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.masthead__inner {
+  height: var(--masthead-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gutter);
+}
+
+.masthead__nav {
+  display: flex;
+  gap: clamp(16px, 2.5vw, 36px);
+}
+
+.masthead__nav a {
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.masthead__nav a:hover {
+  color: var(--accent);
+}
+
+/* Figure: a ruled frame on graph paper, with a mono caption underneath. */
+.figure__frame {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--rule);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+
+.figure__frame--wide {
+  aspect-ratio: 4 / 3;
+}
+
+.figure__frame--chart {
+  aspect-ratio: 3 / 2;
+}
+
+/* The canvas fills its frame. The renderer sizes the pixel buffer to match. */
+.figure__frame canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Temporary label shown until a phase draws into the canvas. */
+.figure__placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+
+.figure__caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding-top: 10px;
+}
+
+/* Readout: label/value pairs in mono, like an instrument display. */
+.readout {
+  display: grid;
+  gap: 6px;
+}
+
+.readout div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--rule-faint);
+  padding-bottom: 6px;
+}
+
+.readout dt {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.readout dd {
+  font-family: var(--font-mono);
+  font-size: var(--fs-data);
+  font-variant-numeric: tabular-nums; /* digits all the same width, so numbers don't jitter */
+}
+
+.readout--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+
+.readout--inline div {
+  border: 0;
+  padding: 0;
+  gap: 10px;
+  align-items: baseline;
+}
+
+/* Panel: stacked control rows separated by faint rules. */
+.panel {
+  border-top: 1px solid var(--rule);
+}
+
+.panel__row {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 20px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+.panel__row legend {
+  padding: 0;
+  margin-bottom: 12px;
+  float: left; /* lets the legend behave like a normal block inside the grid */
+  width: 100%;
+}
+
+.panel__row label.label {
+  display: flex;
+  justify-content: space-between;
+}
+
+.panel__row output {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons: mono, square, 1px ink. Hover inverts. */
+.btn {
+  appearance: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover,
+.btn--solid {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn--solid:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Adjacent buttons share a border instead of doubling it. */
+.btn-row .btn + .btn {
+  border-left: 0;
+}
+
+/* Segmented toggle: real radio inputs, visually replaced by the <span>. */
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1px solid var(--rule);
+}
+
+.segmented label {
+  position: relative;
+}
+
+.segmented label + label span {
+  border-left: 1px solid var(--rule);
+}
+
+/* Hidden but still focusable and readable by screen readers. */
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.segmented span {
+  display: block;
+  padding: 10px 8px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.segmented span:hover {
+  background: var(--paper-deep);
+}
+
+.segmented input:checked + span {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.segmented input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Range slider: a 1px line with a small square thumb.
+   Browsers need separate rules for WebKit/Blink and Firefox. */
+.range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--ink);
+}
+
+.range::-moz-range-track {
+  height: 1px;
+  background: var(--ink);
+}
+
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5.5px; /* centres the thumb on the 1px track */
+  background: var(--ink);
+  border: 0;
+  border-radius: 0;
+}
+
+.range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--ink);
+  border: 0;
+  border-radius: 0;
+}
+
+.range:focus-visible {
+  outline-offset: 6px;
+}
+
+/* 6. SECTIONS -------------------------------------------------------------- */
+
+/* Shared section rhythm: generous space, a full-width rule at the top. */
+.section {
+  padding-top: var(--section-space);
+}
+
+.section > .container > .grid {
+  border-top: 1px solid var(--rule);
+  padding-top: 20px;
+}
+
+/* Section header uses subgrid: its children line up with the page columns. */
+.section__head {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  row-gap: 24px;
+  margin-bottom: clamp(48px, 8vw, 112px);
+}
+
+.section__head > .label {
+  grid-column: 1 / span 2;
+  padding-top: 0.6em;
+}
+
+.section__title {
+  font-size: var(--fs-h2);
+}
+
+.section__head > .section__title {
+  grid-column: 3 / -1;
+}
+
+.section__title--sm {
+  font-size: var(--fs-h3);
+}
+
+.section__intro {
+  grid-column: 3 / span 5;
+  color: var(--ink-2);
+  max-width: 36ch;
+}
+
+/* --- Hero --- */
 .hero {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+  overflow: hidden;
 }
 
-#app {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
+.hero__canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
+  z-index: 0;
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+.hero__grid {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100svh - var(--masthead-h));
+  grid-template-rows: auto 1fr auto auto;
+  row-gap: clamp(24px, 4vw, 48px);
+  padding-block: 24px clamp(32px, 5vw, 56px);
+  pointer-events: none; /* clicks fall through to the canvas behind */
+}
+
+.hero__fig {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.hero__title {
+  grid-column: 1 / span 11;
+  grid-row: 2;
+  align-self: end;
+  font-size: var(--fs-hero);
+}
+
+.hero__title em {
+  color: var(--accent);
+}
+
+.hero__lead {
+  grid-column: 2 / span 5;
+  grid-row: 3;
+}
+
+.hero__readout {
+  grid-column: 10 / -1;
+  grid-row: 3;
+  align-self: end;
+}
+
+.hero__cue {
+  grid-column: 1 / span 4;
+  grid-row: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero__cue-line {
+  display: inline-block;
+  width: 48px;
+  height: 1px;
+  background: var(--ink);
+}
+
+/* Hide hero items until GSAP fades them in. The "js" class is added by an
+   inline script, so if JavaScript is off, nothing ever gets hidden. */
+.js [data-hero] {
+  visibility: hidden;
+}
+
+/* --- Story --- */
+.story__steps {
+  grid-column: 1 / span 5;
+  grid-row: 2;
+}
+
+.step {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  border-top: 1px solid var(--rule-faint);
+}
+
+.step:first-child {
+  border-top: 0;
+}
+
+.step__title {
+  font-size: var(--fs-h3);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  max-width: 14ch;
+}
+
+.step p {
+  color: var(--ink-2);
+  max-width: 34ch;
+}
+
+.story__figure {
+  grid-column: 7 / -1;
+  grid-row: 2;
+  align-self: start;
+}
+
+/* --- Playground --- */
+.playground__figure {
+  grid-column: 1 / span 8;
+}
+
+.playground__panel {
+  grid-column: 10 / -1;
+  align-self: start;
+}
+
+/* --- Charts --- */
+.chart {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
+.chart--inertia {
+  grid-column: 1 / span 5;
+}
+
+.chart--elbow {
+  grid-column: 7 / -1;
+}
+
+/* --- Footer --- */
+.footer {
+  margin-top: var(--section-space);
+  padding-bottom: 40px;
+}
+
+.footer .grid {
+  border-top: 1px solid var(--rule);
+  padding-top: 24px;
+  row-gap: 24px;
+  align-items: end;
+}
+
+.footer__name {
+  grid-column: 1 / span 8;
+  font-size: var(--fs-h2);
+}
+
+.footer__meta {
+  grid-column: 9 / -1;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  text-align: right;
+}
+
+/* 7. RESPONSIVE ------------------------------------------------------------ */
+/* Phase 5 refines this. For now: collapse to 4 columns and stack everything. */
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
+  .guides span:nth-child(n + 5) {
+    display: none;
   }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+
+  .guides span:nth-child(4) {
+    border-right: 1px solid var(--grid-line);
+  }
+
+  .hero__fig,
+  .hero__title,
+  .hero__lead,
+  .hero__readout,
+  .hero__cue,
+  .section__head > .label,
+  .section__head > .section__title,
+  .section__intro,
+  .story__steps,
+  .story__figure,
+  .playground__figure,
+  .playground__panel,
+  .chart--inertia,
+  .chart--elbow,
+  .footer__name,
+  .footer__meta {
+    grid-column: 1 / -1;
+  }
+
+  .hero__readout,
+  .story__steps,
+  .story__figure {
+    grid-row: auto;
+  }
+
+  .masthead__nav,
+  .masthead__meta {
+    display: none;
+  }
+
+  .footer__meta {
+    justify-items: start;
+    text-align: left;
   }
 }

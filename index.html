@@ -2,12 +2,249 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>kmeans-visualizer</title>
+    <meta name="description" content="An interactive, from-scratch visualisation of the K-means clustering algorithm." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Mark that JS is running, so CSS can hide the hero until GSAP fades it in. -->
+    <script>document.documentElement.classList.add("js")</script>
+    <title>Watching K-means think</title>
+
+    <!-- Fonts: a serif for display + body copy, a monospace for data and labels.
+         preconnect opens the connection to Google Fonts early so text appears sooner. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
   </head>
   <body>
-    <div id="app"></div>
+    <!-- Faint 12-column guides fixed behind the page: the "visible grid".
+         They use the same container + grid as the content, so they line up exactly. -->
+    <div class="guides" aria-hidden="true">
+      <div class="container grid">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <header class="masthead">
+      <div class="container masthead__inner">
+        <span class="label">K-means / field notes</span>
+        <nav class="masthead__nav" aria-label="Sections">
+          <a class="label" href="#story">01 Algorithm</a>
+          <a class="label" href="#playground">02 Playground</a>
+          <a class="label" href="#inertia">03 Inertia</a>
+          <a class="label" href="#elbow">04 Elbow</a>
+        </nav>
+        <span class="label masthead__meta">Vol. 01 / 2026</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- ───────────── 1. HERO ───────────── -->
+      <section class="hero" id="top">
+        <!-- The live canvas sits behind the title (wired up in Phase 4). -->
+        <canvas class="hero__canvas" id="hero-canvas" aria-hidden="true"></canvas>
+
+        <div class="container grid hero__grid">
+          <p class="label hero__fig" data-hero>Fig. 00 &mdash; Live</p>
+
+          <h1 class="display hero__title" data-hero>
+            Watching <em>K-means</em> think
+          </h1>
+
+          <p class="lead hero__lead" data-hero>
+            An unsupervised algorithm that sorts points into groups using nothing
+            but distance and averages. Here it is, one step at a time.
+          </p>
+
+          <dl class="readout hero__readout" data-hero>
+            <div><dt>Points</dt><dd>240</dd></div>
+            <div><dt>Clusters</dt><dd>K = 4</dd></div>
+            <div><dt>Status</dt><dd>Settling</dd></div>
+          </dl>
+
+          <p class="label hero__cue" data-hero>
+            <span class="hero__cue-line" aria-hidden="true"></span>Scroll to begin
+          </p>
+        </div>
+      </section>
+
+      <!-- ───────────── 2. SCROLL STORY ───────────── -->
+      <section class="section story" id="story">
+        <div class="container"><div class="grid">
+          <header class="section__head" data-reveal>
+            <span class="label">&sect; 01</span>
+            <h2 class="display section__title">The algorithm, in four moves</h2>
+          </header>
+
+          <!-- Steps scroll past on the left; the figure is pinned on the right (Phase 4). -->
+          <ol class="story__steps">
+            <li class="step" data-step="1">
+              <span class="label">Step 01 / Scatter</span>
+              <h3 class="step__title">Start with raw points</h3>
+              <p>
+                No labels, no answers. K-means only knows where each point is,
+                and how far apart any two points are.
+              </p>
+            </li>
+            <li class="step" data-step="2">
+              <span class="label">Step 02 / Seed</span>
+              <h3 class="step__title">Drop K centroids</h3>
+              <p>
+                Pick K starting centres at random. They are guesses: one candidate
+                centre for each cluster we hope to find.
+              </p>
+            </li>
+            <li class="step" data-step="3">
+              <span class="label">Step 03 / Assign</span>
+              <h3 class="step__title">Every point picks its nearest centre</h3>
+              <p>
+                Measure the straight-line distance from each point to every
+                centroid. The closest one wins. That is the whole rule.
+              </p>
+            </li>
+            <li class="step" data-step="4">
+              <span class="label">Step 04 / Update</span>
+              <h3 class="step__title">Move centres to the mean, repeat</h3>
+              <p>
+                Each centroid moves to the average of the points that chose it.
+                Then assign again. Stop when nothing changes.
+              </p>
+            </li>
+          </ol>
+
+          <figure class="figure story__figure">
+            <div class="figure__frame">
+              <canvas id="story-canvas" aria-label="Animated K-means steps"></canvas>
+              <span class="figure__placeholder label">Canvas &mdash; Phase 4</span>
+            </div>
+            <figcaption class="figure__caption">
+              <span class="label">Fig. 01</span>
+              <span class="label label--muted">Iteration 00</span>
+            </figcaption>
+          </figure>
+        </div></div>
+      </section>
+
+      <!-- ───────────── 3. PLAYGROUND ───────────── -->
+      <section class="section playground" id="playground">
+        <div class="container"><div class="grid">
+          <header class="section__head" data-reveal>
+            <span class="label">&sect; 02</span>
+            <h2 class="display section__title">Playground</h2>
+            <p class="section__intro">
+              Change K, swap the dataset, click to add points. Then step through
+              it yourself.
+            </p>
+          </header>
+
+          <figure class="figure playground__figure" data-reveal>
+            <div class="figure__frame figure__frame--wide">
+              <canvas id="playground-canvas" aria-label="Interactive K-means canvas"></canvas>
+              <span class="figure__placeholder label">Canvas &mdash; Phase 3</span>
+            </div>
+            <figcaption class="figure__caption">
+              <span class="label">Fig. 02</span>
+              <dl class="readout readout--inline">
+                <div><dt>Iteration</dt><dd id="ro-iteration">00</dd></div>
+                <div><dt>Inertia</dt><dd id="ro-inertia">&mdash;</dd></div>
+                <div><dt>Status</dt><dd id="ro-status">Idle</dd></div>
+              </dl>
+            </figcaption>
+          </figure>
+
+          <!-- Controls are styled now; they get behaviour in Phase 3. -->
+          <aside class="panel playground__panel" data-reveal aria-label="Controls">
+            <div class="panel__row">
+              <label class="label" for="k-slider">Clusters <output id="k-value">K = 4</output></label>
+              <input class="range" id="k-slider" type="range" min="2" max="8" step="1" value="4" />
+            </div>
+
+            <div class="panel__row">
+              <span class="label">Run</span>
+              <div class="btn-row">
+                <button class="btn" type="button" id="btn-step">Step</button>
+                <button class="btn btn--solid" type="button" id="btn-play">Play</button>
+                <button class="btn" type="button" id="btn-reset">Reset</button>
+              </div>
+            </div>
+
+            <fieldset class="panel__row">
+              <legend class="label">Initialisation</legend>
+              <div class="segmented">
+                <label><input type="radio" name="init" value="random" /><span>Random</span></label>
+                <label><input type="radio" name="init" value="plusplus" checked /><span>K-means++</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="panel__row">
+              <legend class="label">Dataset</legend>
+              <div class="segmented segmented--4">
+                <label><input type="radio" name="dataset" value="blobs" checked /><span>Blobs</span></label>
+                <label><input type="radio" name="dataset" value="uniform" /><span>Uniform</span></label>
+                <label><input type="radio" name="dataset" value="moons" /><span>Moons</span></label>
+                <label><input type="radio" name="dataset" value="rings" /><span>Rings</span></label>
+              </div>
+              <p class="note" id="dataset-note">
+                Well-separated, round groups. The case K-means was made for.
+              </p>
+            </fieldset>
+          </aside>
+        </div></div>
+      </section>
+
+      <!-- ───────────── 4 + 5. CHARTS ───────────── -->
+      <section class="section charts">
+        <div class="container"><div class="grid">
+          <article class="chart chart--inertia" id="inertia" data-reveal>
+            <span class="label">&sect; 03</span>
+            <h2 class="display section__title section__title--sm">Inertia per iteration</h2>
+            <p class="note">
+              Inertia is the sum of squared distances from each point to its
+              centroid. Every step of K-means can only lower it, or leave it alone.
+            </p>
+            <figure class="figure">
+              <div class="figure__frame figure__frame--chart">
+                <canvas id="inertia-chart" aria-label="Line chart of inertia per iteration"></canvas>
+                <span class="figure__placeholder label">Chart &mdash; Phase 5</span>
+              </div>
+              <figcaption class="figure__caption"><span class="label">Fig. 03</span></figcaption>
+            </figure>
+          </article>
+
+          <article class="chart chart--elbow" id="elbow" data-reveal>
+            <span class="label">&sect; 04</span>
+            <h2 class="display section__title section__title--sm">The elbow</h2>
+            <p class="note">
+              Run K = 1 to 8 on the same data. Inertia always falls as K grows, so
+              look for the bend where adding another cluster stops buying much.
+            </p>
+            <figure class="figure">
+              <div class="figure__frame figure__frame--chart">
+                <canvas id="elbow-chart" aria-label="Inertia plotted against K"></canvas>
+                <span class="figure__placeholder label">Chart &mdash; Phase 5</span>
+              </div>
+              <figcaption class="figure__caption"><span class="label">Fig. 04</span></figcaption>
+            </figure>
+          </article>
+        </div></div>
+      </section>
+    </main>
+
+    <!-- ───────────── 6. FOOTER ───────────── -->
+    <footer class="footer">
+      <div class="container"><div class="grid">
+        <p class="display footer__name">Shoham Chakraborty</p>
+        <div class="footer__meta">
+          <a class="label link" href="https://github.com/your-username" target="_blank" rel="noopener">GitHub &rarr;</a>
+          <span class="label label--muted">Built from scratch: no ML libraries</span>
+        </div>
+      </div></div>
+    </footer>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
