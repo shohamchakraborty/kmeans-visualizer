@@ -31,6 +31,9 @@
   --c4: #c38a26; /* ochre */
   --c5: #6d3a5d; /* aubergine */
   --c6: #2f8079; /* verdigris */
+  /* Two extras, only used when K is 7 or 8. */
+  --c7: #c27a86; /* madder rose */
+  --c8: #4e5967; /* graphite */
   --accent: var(--c1);
 
   /* Type */
@@ -401,6 +404,18 @@ main,
   cursor: not-allowed;
 }
 
+/* A disabled button shouldn't react to hover. */
+.btn:disabled:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn--solid:disabled:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--rule);
+}
+
 .btn-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -505,6 +520,13 @@ main,
 
 .range:focus-visible {
   outline-offset: 6px;
+}
+
+/* Min / max labels under the slider. */
+.range-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -6px;
 }
 
 /* 6. SECTIONS -------------------------------------------------------------- */
@@ -668,6 +690,22 @@ main,
 .playground__panel {
   grid-column: 10 / -1;
   align-self: start;
+}
+
+.playground__canvas {
+  cursor: crosshair;
+  touch-action: manipulation; /* no double-tap zoom delay on phones */
+}
+
+/* The status readout turns green once the run has converged. */
+#ro-status[data-state="converged"] {
+  color: var(--c3);
+}
+
+/* "Where K-means fails." prefix on the Moons / Rings notes. */
+.note__tag {
+  color: var(--accent);
+  font-style: italic;
 }
 
 /* --- Charts --- */

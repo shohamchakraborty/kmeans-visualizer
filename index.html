@@ -143,24 +143,30 @@
 
           <figure class="figure playground__figure" data-reveal>
             <div class="figure__frame figure__frame--wide">
-              <canvas id="playground-canvas" aria-label="Interactive K-means canvas"></canvas>
-              <span class="figure__placeholder label">Canvas &mdash; Phase 3</span>
+              <canvas
+                class="playground__canvas"
+                id="playground-canvas"
+                aria-label="Interactive K-means canvas. Click to add a point."
+              ></canvas>
             </div>
             <figcaption class="figure__caption">
-              <span class="label">Fig. 02</span>
+              <span class="label">Fig. 02 <span class="label--muted">&mdash; Click to add points</span></span>
               <dl class="readout readout--inline">
                 <div><dt>Iteration</dt><dd id="ro-iteration">00</dd></div>
                 <div><dt>Inertia</dt><dd id="ro-inertia">&mdash;</dd></div>
-                <div><dt>Status</dt><dd id="ro-status">Idle</dd></div>
+                <div><dt>Points</dt><dd id="ro-points">0</dd></div>
+                <div><dt>Next</dt><dd id="ro-next">Seed</dd></div>
+                <!-- aria-live: screen readers announce status changes (e.g. "Converged") -->
+                <div><dt>Status</dt><dd id="ro-status" aria-live="polite">Idle</dd></div>
               </dl>
             </figcaption>
           </figure>
 
-          <!-- Controls are styled now; they get behaviour in Phase 3. -->
           <aside class="panel playground__panel" data-reveal aria-label="Controls">
             <div class="panel__row">
               <label class="label" for="k-slider">Clusters <output id="k-value">K = 4</output></label>
               <input class="range" id="k-slider" type="range" min="2" max="8" step="1" value="4" />
+              <div class="range-scale label label--muted" aria-hidden="true"><span>2</span><span>8</span></div>
             </div>
 
             <div class="panel__row">

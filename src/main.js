@@ -6,12 +6,16 @@ import 'lenis/dist/lenis.css' // small helper styles Lenis needs (e.g. height: a
 import './style.css'
 
 import { initSmoothScroll, initHeroIntro, initReveals, refreshAfterFonts } from './scroll.js'
+import { initPlayground } from './playground.js'
 
 // Phase 1: smooth scrolling + entrance animations.
 const lenis = initSmoothScroll()
 initHeroIntro()
 initReveals()
 refreshAfterFonts()
+
+// Phase 3: the interactive playground.
+const playground = initPlayground(document.querySelector('#playground'))
 
 // Handy for debugging in the console: window.lenis.scrollTo('#playground')
 window.lenis = lenis
@@ -27,6 +31,7 @@ if (import.meta.env.DEV) {
       window.runKmeansTests = tests.runKmeansTests
       window.km = km
       window.data = data
+      window.playground = playground // inspect live state: playground.state
       console.log('%cDev helpers ready: runKmeansTests(), km, data', 'font-family:monospace')
     },
   )

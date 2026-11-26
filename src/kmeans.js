@@ -130,19 +130,21 @@ export function initPlusPlus(points, k, rng = Math.random) {
 }
 
 /**
- * ASSIGN STEP. >>> YOUR TURN <<<
+ * ASSIGN STEP.
  *
  * For every point, find the index of the centroid closest to it.
  *
- * Contract (the console tests check each of these):
+ * Contract (checked by kmeans.test.js):
  *   - Returns a NEW array of length points.length. Entry i is an integer in
  *     0..centroids.length-1: the index of the centroid nearest to points[i].
  *   - "Nearest" = smallest squaredDistance (helper above).
  *   - Ties: if two centroids are exactly equally close, pick the LOWER index.
  *   - Must not modify `points` or `centroids`.
  *
- * Think about: how many distance calculations does this do in total, in terms
- * of n (points) and k (centroids)? An interviewer will likely ask.
+ * Cost: every point is compared with every centroid, so n x k distance
+ * calculations per call: O(nk) time. This is the expensive step of K-means.
+ * The strict `<` in the comparison is what makes ties go to the lower index:
+ * a later centroid only wins if it is strictly closer.
  *
  * @param {Array<point>} points
  * @param {Array<point>} centroids
@@ -170,11 +172,11 @@ export function assignPoints(points, centroids) {
 }
 
 /**
- * UPDATE STEP. >>> YOUR TURN <<<
+ * UPDATE STEP.
  *
  * Move each centroid to the mean (average position) of the points assigned to it.
  *
- * Contract (the console tests check each of these):
+ * Contract (checked by kmeans.test.js):
  *   - Returns a NEW array with the same length as `centroids`.
  *   - Entry j is { x: mean x of points in cluster j, y: mean y of points in cluster j }.
  *   - EMPTY CLUSTER: if no point is assigned to cluster j, entry j is a copy of
@@ -182,7 +184,9 @@ export function assignPoints(points, centroids) {
  *     centroids are passed in. Without that rule you'd divide by zero and get NaN.
  *   - Must not modify `points`, `assignments` or `centroids`.
  *
- * Hint: it can be done in one pass over the points, plus one pass over the clusters.
+ * How: one pass over the points accumulates a running sum of x, sum of y and a
+ * count per cluster (three arrays of length k). Then one pass over the clusters
+ * divides sum by count. Total cost O(n + k), with only O(k) extra memory.
  *
  * @param {Array<point>} points
  * @param {Array<number>} assignments  output of assignPoints
@@ -196,10 +200,10 @@ export function updateCentroids(points, assignments, centroids) {
   const count = new Array(k).fill(0)
 
   for (let i = 0; i < points.length; i++) {
-    const c = assignments[i]
-    sumX[c] += points[i].x
-    sumY[c] += points[i].y
-    count[c] += 1
+    const cluster = assignments[i]
+    sumX[cluster] += points[i].x
+    sumY[cluster] += points[i].y
+    count[cluster] += 1
   }
 
   return centroids.map((old, j) => {
