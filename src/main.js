@@ -5,12 +5,20 @@
 import 'lenis/dist/lenis.css' // small helper styles Lenis needs (e.g. height: auto on <html>)
 import './style.css'
 
-import { initSmoothScroll, initHeroIntro, initReveals, refreshAfterFonts } from './scroll.js'
+import { initSmoothScroll, initHeroIntro, initReveals, initStory, refreshAfterFonts } from './scroll.js'
+import { initHero } from './hero.js'
 import { initPlayground } from './playground.js'
 
 // Phase 1: smooth scrolling + entrance animations.
 const lenis = initSmoothScroll()
 initHeroIntro()
+
+// Phase 4: the live hero canvas and the pinned scroll story.
+// (Created before the reveals so ScrollTrigger measures the pin first:
+// ScrollTriggers are refreshed in creation order.)
+initHero(document.querySelector('.hero'))
+initStory(document.querySelector('#story'))
+
 initReveals()
 refreshAfterFonts()
 

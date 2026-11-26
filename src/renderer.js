@@ -42,8 +42,13 @@ function hexToRgb(hex) {
  * @param {object} [options]
  * @param {Function} [options.onResize]  called after the canvas changes size (redraw there)
  * @param {number}   [options.padding]   empty margin around the data square, as a fraction
+ * @param {'contain'|'cover'} [options.fit]
+ *   'contain' (default): the whole data square is visible, centred.
+ *   'cover': the data square fills the canvas and its edges may be cropped,
+ *   like CSS background-size: cover. Used by the full-width hero. Call bounds()
+ *   to find which part of data space is actually on screen.
  */
-export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
+export function createRenderer(canvas, { onResize, padding = 0.07, fit = 'contain' } = {}) {
   const ctx = canvas.getContext('2d')
   let palette = readPalette()
 
@@ -73,8 +78,10 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
     canvas.height = Math.round(height * dpr)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0) // from now on, 1 unit = 1 CSS pixel
 
-    // Fit the data square inside the canvas ("contain"), centred, with padding.
-    side = Math.min(width, height) * (1 - 2 * padding)
+    // Fit the data square to the canvas, centred, with padding.
+    // contain: square edge = the SHORTER canvas side; cover: the LONGER one.
+    const base = fit === 'cover' ? Math.max(width, height) : Math.min(width, height)
+    side = base * (1 - 2 * padding)
     originX = (width - side) / 2
     originY = (height - side) / 2
 
@@ -87,6 +94,14 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
 
   // --- Projection ------------------------------------------------------------
   const toPixel = (p) => ({ x: originX + p.x * side, y: originY + p.y * side })
+
+  /** The rectangle of data space currently visible on the canvas. */
+  const bounds = () => ({
+    minX: -originX / side,
+    maxX: (width - originX) / side,
+    minY: -originY / side,
+    maxY: (height - originY) / side,
+  })
 
   /** Convert a mouse/touch position (clientX/clientY) into data space. */
   function toData(clientX, clientY) {
@@ -111,7 +126,7 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
   const offscreen = document.createElement('canvas')
   const offCtx = offscreen.getContext('2d')
 
-  function drawRegions(centroids) {
+  function drawRegions(centroids, strength = 1) {
     const cols = Math.ceil(width / CELL)
     const rows = Math.ceil(height / CELL)
     if (cols === 0 || rows === 0) return
@@ -154,7 +169,32 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
 
     offCtx.putImageData(image, 0, 0)
     ctx.imageSmoothingEnabled = true
+    ctx.globalAlpha = strength // lets the story fade the regions in
     ctx.drawImage(offscreen, 0, 0, cols * CELL, rows * CELL)
+    ctx.globalAlpha = 1
+  }
+
+  // --- Assignment links ------------------------------------------------------
+  // A thin ink line from each point toward the centroid it belongs to.
+  // `progress` (0 to 1) is how far along the line has been drawn, so animating
+  // it makes the lines "grow" out of the points. Used by the scroll story.
+  function drawLinks(points, assignments, centroids, progress, alpha) {
+    if (progress <= 0 || alpha <= 0 || !assignments) return
+    ctx.save()
+    ctx.strokeStyle = palette.ink
+    ctx.lineWidth = 0.75
+    ctx.globalAlpha = 0.35 * alpha
+    ctx.beginPath() // one path for every line: a single stroke() is much faster than hundreds
+    for (let i = 0; i < points.length; i++) {
+      const c = centroids[assignments[i]]
+      if (!c) continue
+      const a = toPixel(points[i])
+      const b = toPixel(c)
+      ctx.moveTo(a.x, a.y)
+      ctx.lineTo(a.x + (b.x - a.x) * progress, a.y + (b.y - a.y) * progress)
+    }
+    ctx.stroke()
+    ctx.restore()
   }
 
   // --- Centroid trails -------------------------------------------------------
@@ -197,24 +237,29 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
   // Each point is drawn in its previous colour, then its new colour on top at
   // opacity `colorMix`. Animating colorMix from 0 to 1 cross-fades the colours.
   // Points with no cluster yet (index -1 or no assignments) are drawn in grey ink.
-  function drawPoints(points, assignments, prevAssignments, colorMix) {
+  // `opacity` is either one number for every point, or an array with one value per point.
+  function drawPoints(points, assignments, prevAssignments, colorMix, opacity = 1) {
+    const perPoint = Array.isArray(opacity)
     const radius = width < 480 ? 2.2 : 2.7
     const colourOf = (index) =>
       index == null || index < 0 ? palette.ink2 : palette.clusters[index % palette.clusters.length]
 
     for (let i = 0; i < points.length; i++) {
+      const alpha = perPoint ? opacity[i] : opacity
+      if (alpha <= 0) continue
+
       const { x, y } = toPixel(points[i])
       const before = colourOf(prevAssignments?.[i])
       const after = colourOf(assignments?.[i])
 
-      ctx.globalAlpha = 1
+      ctx.globalAlpha = alpha
       ctx.fillStyle = before
       ctx.beginPath()
       ctx.arc(x, y, radius, 0, Math.PI * 2)
       ctx.fill()
 
       if (after !== before && colorMix > 0) {
-        ctx.globalAlpha = colorMix
+        ctx.globalAlpha = colorMix * alpha
         ctx.fillStyle = after
         ctx.fill() // same path, new colour on top
       }
@@ -225,7 +270,7 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
   // --- Centroids -------------------------------------------------------------
   // A coloured disc with an ink outline, crosshair ticks, and a "C1"-style label.
   // `scale` (0 to 1) lets them grow in when first placed.
-  function drawCentroids(centroids, scale = 1) {
+  function drawCentroids(centroids, scale = 1, labels = true) {
     if (scale <= 0) return
     ctx.save()
     ctx.font = '500 10px "JetBrains Mono", ui-monospace, monospace'
@@ -259,10 +304,12 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
       ctx.stroke()
 
       // Label, fading in with the scale
-      ctx.globalAlpha = scale
-      ctx.fillStyle = palette.ink
-      ctx.fillText(`C${j + 1}`, x + tick + 3, y - tick + 3)
-      ctx.globalAlpha = 1
+      if (labels) {
+        ctx.globalAlpha = scale
+        ctx.fillStyle = palette.ink
+        ctx.fillText(`C${j + 1}`, x + tick + 3, y - tick + 3)
+        ctx.globalAlpha = 1
+      }
     })
     ctx.restore()
   }
@@ -279,16 +326,21 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
    * @param {number}        [scene.centroidScale=1]  0..1 grow-in for centroids
    * @param {Array<Array<{x,y}>>} [scene.trails]     past positions per centroid
    * @param {boolean}       [scene.showRegions]      tint the nearest-centroid regions
+   * @param {number}        [scene.regionStrength=1] 0..1 fade for the region tint
+   * @param {number|Array<number>} [scene.pointOpacity=1]  0..1 fade, for all points or per point
+   * @param {{progress:number, alpha:number}} [scene.links]  point-to-centroid lines
+   * @param {boolean}       [scene.labels=true]      draw "C1", "C2"... next to centroids
    */
   function draw(scene) {
     ctx.clearRect(0, 0, width, height)
     const { points, assignments, prevAssignments, colorMix = 1 } = scene
     const centroids = scene.centroids ?? []
 
-    if (scene.showRegions && centroids.length > 0) drawRegions(centroids)
+    if (scene.showRegions && centroids.length > 0) drawRegions(centroids, scene.regionStrength ?? 1)
     if (scene.trails) drawTrails(scene.trails)
-    drawPoints(points, assignments, prevAssignments, colorMix)
-    drawCentroids(centroids, scene.centroidScale ?? 1)
+    if (scene.links) drawLinks(points, assignments, centroids, scene.links.progress, scene.links.alpha)
+    drawPoints(points, assignments, prevAssignments, colorMix, scene.pointOpacity ?? 1)
+    drawCentroids(centroids, scene.centroidScale ?? 1, scene.labels ?? true)
   }
 
   resize()
@@ -296,6 +348,7 @@ export function createRenderer(canvas, { onResize, padding = 0.07 } = {}) {
   return {
     draw,
     toData,
+    bounds,
     /** Re-read colours from CSS (e.g. if the theme changes). */
     refreshPalette: () => (palette = readPalette()),
   }

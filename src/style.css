@@ -649,6 +649,9 @@ main,
 .story__steps {
   grid-column: 1 / span 5;
   grid-row: 2;
+  /* Extra scroll after the last step, so step 4's iterations finish (and hold on
+     the converged result) while the figure is still pinned. */
+  padding-bottom: 60vh;
 }
 
 .step {
@@ -676,10 +679,39 @@ main,
   max-width: 34ch;
 }
 
-.story__figure {
+/* Steps that aren't being narrated fade back. Only with JS, so that without
+   it every step stays fully readable. */
+.js .step {
+  opacity: 0.25;
+  transition: opacity 500ms var(--ease-out);
+}
+
+.js .step.is-active {
+  opacity: 1;
+}
+
+/* The pin container fills the right-hand column for the full height of the steps. */
+.story__pin {
   grid-column: 7 / -1;
   grid-row: 2;
-  align-self: start;
+}
+
+/* The pinned figure: square, and never taller than the space under the masthead. */
+.story__figure {
+  width: min(100%, calc(100svh - var(--masthead-h) - 96px));
+  margin-left: auto;
+  position: relative;
+  z-index: 2;
+  background: var(--paper); /* on mobile, steps scroll underneath it */
+}
+
+/* ScrollTrigger fixes the pinned figure's height when it measures the layout.
+   The readout text grows later ("Iteration 03 / Inertia 2.477 / ..."), and on a
+   narrow screen it wraps onto a second line. Reserving two lines up front stops
+   that second line from spilling outside the figure's background. */
+.story__figure .figure__caption {
+  min-height: 50px;
+  align-content: flex-start;
 }
 
 /* --- Playground --- */
@@ -773,7 +805,7 @@ main,
   .section__head > .section__title,
   .section__intro,
   .story__steps,
-  .story__figure,
+  .story__pin,
   .playground__figure,
   .playground__panel,
   .chart--inertia,
@@ -783,10 +815,28 @@ main,
     grid-column: 1 / -1;
   }
 
-  .hero__readout,
-  .story__steps,
-  .story__figure {
+  .hero__readout {
     grid-row: auto;
+  }
+
+  /* Mobile story: figure on top (pinned under the masthead), steps scroll below it. */
+  .story__pin {
+    grid-row: 2;
+  }
+
+  .story__steps {
+    grid-row: 3;
+    padding-bottom: 20vh;
+  }
+
+  .story__figure {
+    width: min(100%, 46svh);
+    margin-inline: auto;
+    padding-bottom: 8px;
+  }
+
+  .step {
+    min-height: 70vh;
   }
 
   .masthead__nav,

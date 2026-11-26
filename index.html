@@ -45,7 +45,7 @@
     <main>
       <!-- ───────────── 1. HERO ───────────── -->
       <section class="hero" id="top">
-        <!-- The live canvas sits behind the title (wired up in Phase 4). -->
+        <!-- A live K-means run drifts behind the title (hero.js). -->
         <canvas class="hero__canvas" id="hero-canvas" aria-hidden="true"></canvas>
 
         <div class="container grid hero__grid">
@@ -61,9 +61,10 @@
           </p>
 
           <dl class="readout hero__readout" data-hero>
-            <div><dt>Points</dt><dd>240</dd></div>
+            <div><dt>Points</dt><dd id="hero-points">&mdash;</dd></div>
             <div><dt>Clusters</dt><dd>K = 4</dd></div>
-            <div><dt>Status</dt><dd>Settling</dd></div>
+            <div><dt>Iteration</dt><dd id="hero-iteration">00</dd></div>
+            <div><dt>Status</dt><dd id="hero-status">Settling</dd></div>
           </dl>
 
           <p class="label hero__cue" data-hero>
@@ -80,7 +81,8 @@
             <h2 class="display section__title">The algorithm, in four moves</h2>
           </header>
 
-          <!-- Steps scroll past on the left; the figure is pinned on the right (Phase 4). -->
+          <!-- Steps scroll past on the left. The figure is pinned on the right by
+               ScrollTrigger, and each step drives what the canvas shows (scroll.js). -->
           <ol class="story__steps">
             <li class="step" data-step="1">
               <span class="label">Step 01 / Scatter</span>
@@ -116,16 +118,19 @@
             </li>
           </ol>
 
-          <figure class="figure story__figure">
-            <div class="figure__frame">
-              <canvas id="story-canvas" aria-label="Animated K-means steps"></canvas>
-              <span class="figure__placeholder label">Canvas &mdash; Phase 4</span>
-            </div>
-            <figcaption class="figure__caption">
-              <span class="label">Fig. 01</span>
-              <span class="label label--muted">Iteration 00</span>
-            </figcaption>
-          </figure>
+          <!-- .story__pin is the grid cell (full height of the steps column);
+               the figure inside it is what gets pinned. -->
+          <div class="story__pin">
+            <figure class="figure story__figure">
+              <div class="figure__frame">
+                <canvas id="story-canvas" aria-label="Animation of K-means, driven by scrolling"></canvas>
+              </div>
+              <figcaption class="figure__caption">
+                <span class="label">Fig. 01 <span class="label--muted" id="story-step">&mdash; Scatter</span></span>
+                <span class="label label--muted" id="story-readout">Iteration 00</span>
+              </figcaption>
+            </figure>
+          </div>
         </div></div>
       </section>
 
