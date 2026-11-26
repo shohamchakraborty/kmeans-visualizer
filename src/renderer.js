@@ -36,6 +36,47 @@ function hexToRgb(hex) {
 }
 
 /**
+ * Make a canvas sharp on high-DPI ("retina") screens, and keep it that way
+ * as it resizes. Shared by the scatter renderer below and the charts.
+ *
+ * A canvas has two sizes:
+ *   - its CSS size (how big it looks), set by the stylesheet
+ *   - its pixel buffer (canvas.width/height), how many pixels it actually stores
+ * On a screen with devicePixelRatio 2, one CSS pixel is 2x2 physical pixels.
+ * If the buffer only matched the CSS size, the browser would stretch it and
+ * everything would look blurry. So we make the buffer dpr times bigger, then
+ * scale the drawing context by dpr, and keep drawing in CSS pixel units.
+ *
+ * @param {HTMLCanvasElement} canvas
+ * @param {(size: {width: number, height: number}) => void} onResize  called after every resize
+ * @returns {{ ctx: CanvasRenderingContext2D, size: {width: number, height: number} }}
+ */
+export function setupHiDPICanvas(canvas, onResize) {
+  const ctx = canvas.getContext('2d')
+  const size = { width: 0, height: 0 } // in CSS pixels; updated in place on resize
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect()
+    // Cap at 2: a 3x phone screen would cost 2.25x the pixels for almost no visible gain.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+    size.width = rect.width
+    size.height = rect.height
+    canvas.width = Math.round(size.width * dpr)
+    canvas.height = Math.round(size.height * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0) // from now on, 1 unit = 1 CSS pixel
+    onResize(size)
+  }
+
+  // ResizeObserver fires whenever the element's size changes: window resizes,
+  // layout shifts, orientation changes. More reliable than window 'resize'.
+  new ResizeObserver(resize).observe(canvas)
+  resize()
+
+  return { ctx, size }
+}
+
+/**
  * Create a renderer for one canvas.
  *
  * @param {HTMLCanvasElement} canvas
@@ -49,7 +90,6 @@ function hexToRgb(hex) {
  *   to find which part of data space is actually on screen.
  */
 export function createRenderer(canvas, { onResize, padding = 0.07, fit = 'contain' } = {}) {
-  const ctx = canvas.getContext('2d')
   let palette = readPalette()
 
   // Current size in CSS pixels, plus the projection derived from it.
@@ -59,24 +99,9 @@ export function createRenderer(canvas, { onResize, padding = 0.07, fit = 'contai
   let originX = 0
   let originY = 0
 
-  // --- High-DPI ("retina") handling -----------------------------------------
-  // A canvas has two sizes:
-  //   - its CSS size (how big it looks), set by the stylesheet
-  //   - its pixel buffer (canvas.width/height), how many pixels it actually stores
-  // On a screen with devicePixelRatio 2, one CSS pixel is 2x2 physical pixels.
-  // If the buffer only matched the CSS size, the browser would stretch it and
-  // everything would look blurry. So we make the buffer dpr times bigger, then
-  // scale the drawing context by dpr, and keep drawing in CSS pixel units.
-  function resize() {
-    const rect = canvas.getBoundingClientRect()
-    // Cap at 2: a 3x phone screen would cost 2.25x the pixels for almost no visible gain.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-
-    width = rect.width
-    height = rect.height
-    canvas.width = Math.round(width * dpr)
-    canvas.height = Math.round(height * dpr)
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0) // from now on, 1 unit = 1 CSS pixel
+  const { ctx } = setupHiDPICanvas(canvas, (size) => {
+    width = size.width
+    height = size.height
 
     // Fit the data square to the canvas, centred, with padding.
     // contain: square edge = the SHORTER canvas side; cover: the LONGER one.
@@ -86,11 +111,7 @@ export function createRenderer(canvas, { onResize, padding = 0.07, fit = 'contai
     originY = (height - side) / 2
 
     onResize?.()
-  }
-
-  // ResizeObserver fires whenever the element's size changes: window resizes,
-  // layout shifts, orientation changes. More reliable than window 'resize'.
-  new ResizeObserver(resize).observe(canvas)
+  })
 
   // --- Projection ------------------------------------------------------------
   const toPixel = (p) => ({ x: originX + p.x * side, y: originY + p.y * side })
@@ -342,8 +363,6 @@ export function createRenderer(canvas, { onResize, padding = 0.07, fit = 'contai
     drawPoints(points, assignments, prevAssignments, colorMix, scene.pointOpacity ?? 1)
     drawCentroids(centroids, scene.centroidScale ?? 1, scene.labels ?? true)
   }
-
-  resize()
 
   return {
     draw,

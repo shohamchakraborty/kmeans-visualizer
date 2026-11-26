@@ -126,8 +126,10 @@ export function initHero(section) {
   /** K blob centres spread across the screen, then each point gets a spot in a blob. */
   function blobTargets() {
     const b = renderer.bounds()
-    const h = b.maxY - b.minY
-    const spread = h * 0.05
+    // Scale everything by the SHORTER visible side, so a tall phone screen
+    // (narrow in x) gets the same proportions as a wide desktop one (short in y).
+    const s = Math.min(b.maxX - b.minX, b.maxY - b.minY)
+    const spread = s * 0.05
     const zones = textZones(spread * 2.5) // keep about 2.5 standard deviations clear
     const inZone = (c) => zones.some((z) => c.x > z.minX && c.x < z.maxX && c.y > z.minY && c.y < z.maxY)
 
@@ -137,10 +139,10 @@ export function initHero(section) {
     const centres = []
     for (let attempt = 0; centres.length < K && attempt < 600; attempt++) {
       const c = {
-        x: lerp(b.minX + h * 0.12, b.maxX - h * 0.12, rng()),
-        y: lerp(b.minY + h * 0.15, b.maxY - h * 0.15, rng()),
+        x: lerp(b.minX + s * 0.12, b.maxX - s * 0.12, rng()),
+        y: lerp(b.minY + s * 0.15, b.maxY - s * 0.15, rng()),
       }
-      const farEnough = centres.every((o) => Math.hypot(o.x - c.x, o.y - c.y) > h * 0.3)
+      const farEnough = centres.every((o) => Math.hypot(o.x - c.x, o.y - c.y) > s * 0.3)
       if ((farEnough && !inZone(c)) || attempt > 450) centres.push(c)
     }
     return points.map((_, i) => {

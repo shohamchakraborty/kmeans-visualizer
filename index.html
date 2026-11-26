@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="An interactive, from-scratch visualisation of the K-means clustering algorithm." />
+    <meta name="theme-color" content="#f2efe8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- Mark that JS is running, so CSS can hide the hero until GSAP fades it in. -->
     <script>document.documentElement.classList.add("js")</script>
@@ -216,13 +217,23 @@
             <p class="note">
               Inertia is the sum of squared distances from each point to its
               centroid. Every step of K-means can only lower it, or leave it alone.
+              This chart follows the playground live.
             </p>
             <figure class="figure">
-              <div class="figure__frame figure__frame--chart">
-                <canvas id="inertia-chart" aria-label="Line chart of inertia per iteration"></canvas>
-                <span class="figure__placeholder label">Chart &mdash; Phase 5</span>
+              <div class="figure__frame figure__frame--chart figure__frame--plain">
+                <canvas id="inertia-chart" aria-label="Line chart of inertia per iteration, following the playground. Values are in the data table below."></canvas>
               </div>
-              <figcaption class="figure__caption"><span class="label">Fig. 03</span></figcaption>
+              <figcaption class="figure__caption">
+                <span class="label">Fig. 03</span>
+                <span class="label label--muted" id="inertia-readout">No run yet</span>
+              </figcaption>
+              <details class="data-table" id="inertia-table">
+                <summary class="label">Data table</summary>
+                <table>
+                  <thead><tr><th>Iteration</th><th>Inertia</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </details>
             </figure>
           </article>
 
@@ -230,15 +241,26 @@
             <span class="label">&sect; 04</span>
             <h2 class="display section__title section__title--sm">The elbow</h2>
             <p class="note">
-              Run K = 1 to 8 on the same data. Inertia always falls as K grows, so
-              look for the bend where adding another cluster stops buying much.
+              Run K = 1 to 8 on the playground&rsquo;s data. Inertia always falls as K
+              grows (more centres, shorter distances), so look for the bend where
+              adding another cluster stops buying much. Try Uniform: the curve still
+              bends, even though there are no real groups. The elbow is a hint, not a proof.
             </p>
             <figure class="figure">
-              <div class="figure__frame figure__frame--chart">
-                <canvas id="elbow-chart" aria-label="Inertia plotted against K"></canvas>
-                <span class="figure__placeholder label">Chart &mdash; Phase 5</span>
+              <div class="figure__frame figure__frame--chart figure__frame--plain">
+                <canvas id="elbow-chart" aria-label="Line chart of inertia against K from 1 to 8. Values are in the data table below."></canvas>
               </div>
-              <figcaption class="figure__caption"><span class="label">Fig. 04</span></figcaption>
+              <figcaption class="figure__caption">
+                <span class="label">Fig. 04</span>
+                <span class="label label--muted" id="elbow-readout"></span>
+              </figcaption>
+              <details class="data-table" id="elbow-table">
+                <summary class="label">Data table</summary>
+                <table>
+                  <thead><tr><th>K</th><th>Inertia</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </details>
             </figure>
           </article>
         </div></div>
@@ -250,7 +272,8 @@
       <div class="container"><div class="grid">
         <p class="display footer__name">Shoham Chakraborty</p>
         <div class="footer__meta">
-          <a class="label link" href="https://github.com/your-username" target="_blank" rel="noopener">GitHub &rarr;</a>
+         
+          <a class="label link" href="https://github.com/shohamchakraborty/kmeans-visualizer" target="_blank" rel="noopener">GitHub &rarr;</a>
           <span class="label label--muted">Built from scratch: no ML libraries</span>
         </div>
       </div></div>

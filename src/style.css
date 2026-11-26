@@ -22,18 +22,24 @@
   --rule-faint: rgba(27, 26, 23, 0.14);   /* dividers inside components */
   --grid-line: rgba(27, 26, 23, 0.055);   /* background guides, graph paper */
 
-  /* Cluster palette: six "ink on paper" colours.
-     Chosen to differ in hue AND lightness so they stay distinguishable
-     for most colour-blind viewers, and none of them is neon. */
+  /* Cluster palette: eight muted "ink on paper" colours, in a FIXED order
+     (cluster 1 is always vermilion, and so on).
+     Checked with a colour-vision-deficiency (CVD) simulator, not by eye:
+       - every neighbouring pair stays distinct under protan/deutan simulation;
+       - the first four (K = 4, the default) are distinct in EVERY pair, which is
+         why sap green sits at slot 6, away from vermilion (red vs green is the
+         classic colour-blind collision).
+     Past about six colours no palette can keep every pair apart, so cluster
+     identity never relies on colour alone: centroids carry "C1", "C2"... labels,
+     and points are grouped in space. */
   --c1: #b5432c; /* vermilion */
-  --c2: #2b5a80; /* prussian blue */
-  --c3: #5f7a35; /* sap green */
-  --c4: #c38a26; /* ochre */
-  --c5: #6d3a5d; /* aubergine */
-  --c6: #2f8079; /* verdigris */
-  /* Two extras, only used when K is 7 or 8. */
-  --c7: #c27a86; /* madder rose */
-  --c8: #4e5967; /* graphite */
+  --c2: #245f94; /* prussian blue */
+  --c3: #c99325; /* ochre */
+  --c4: #008f7a; /* verdigris */
+  --c5: #843f7a; /* aubergine */
+  --c6: #62852f; /* sap green */
+  --c7: #c2577f; /* madder rose */
+  --c8: #5560b0; /* indigo */
   --accent: var(--c1);
 
   /* Type */
@@ -273,6 +279,11 @@ main,
   aspect-ratio: 3 / 2;
 }
 
+/* Charts draw their own gridlines, so no graph paper behind them. */
+.figure__frame--plain {
+  background-image: none;
+}
+
 /* The canvas fills its frame. The renderer sizes the pixel buffer to match. */
 .figure__frame canvas {
   position: absolute;
@@ -281,13 +292,47 @@ main,
   height: 100%;
 }
 
-/* Temporary label shown until a phase draws into the canvas. */
-.figure__placeholder {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
+/* Data table under each chart: the same numbers as text, for screen readers,
+   copying, or anyone who'd rather read than squint at a line. */
+.data-table {
+  margin-top: 12px;
+  border-top: 1px solid var(--rule-faint);
+  padding-top: 10px;
+}
+
+.data-table summary {
+  cursor: pointer;
+  color: var(--ink-2);
+  width: fit-content;
+}
+
+.data-table table {
+  margin-top: 10px;
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: var(--fs-data);
+  font-variant-numeric: tabular-nums; /* a column of numbers lines up */
+}
+
+.data-table th {
+  font-size: var(--fs-label);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ink-3);
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  text-align: right;
 }
 
 .figure__caption {
@@ -729,9 +774,16 @@ main,
   touch-action: manipulation; /* no double-tap zoom delay on phones */
 }
 
-/* The status readout turns green once the run has converged. */
-#ro-status[data-state="converged"] {
-  color: var(--c3);
+/* Once converged, the status gets a small filled square, like an indicator lamp.
+   (Text stays ink: cluster colours are reserved for data marks.) */
+#ro-status[data-state="converged"]::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  background: currentColor;
 }
 
 /* "Where K-means fails." prefix on the Moons / Rings notes. */
@@ -782,7 +834,36 @@ main,
 }
 
 /* 7. RESPONSIVE ------------------------------------------------------------ */
-/* Phase 5 refines this. For now: collapse to 4 columns and stack everything. */
+/* Three layouts from one grid:
+     > 1080px     the 12-column editorial layout above
+     761-1080px   tablet: same 12 columns, wider controls and charts
+     <= 760px     phone: 4 columns, everything stacked, bigger touch targets */
+
+/* Tablet ---------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  /* Three columns is too narrow for four dataset buttons: give the panel five. */
+  .playground__figure {
+    grid-column: 1 / span 7;
+  }
+
+  .playground__panel {
+    grid-column: 8 / -1;
+  }
+
+  .chart--inertia {
+    grid-column: 1 / span 6;
+  }
+
+  .hero__readout {
+    grid-column: 9 / -1;
+  }
+
+  .hero__lead {
+    grid-column: 1 / span 7;
+  }
+}
+
+/* Phone ----------------------------------------------------------------- */
 @media (max-width: 760px) {
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -847,5 +928,45 @@ main,
   .footer__meta {
     justify-items: start;
     text-align: left;
+  }
+
+  /* A square playground uses a phone's width far better than 4:3. */
+  .figure__frame--wide {
+    aspect-ratio: 1 / 1;
+  }
+
+  /* Taller charts on a narrow screen, so the curve isn't squashed flat. */
+  .figure__frame--chart {
+    aspect-ratio: 4 / 3;
+  }
+
+  .playground__panel {
+    margin-top: 32px;
+  }
+
+  /* The charts stack, so the second one needs its own breathing room. */
+  .chart--elbow {
+    margin-top: 80px;
+  }
+
+  /* Touch targets: at least 44px tall, the usual minimum for a fingertip. */
+  .btn,
+  .segmented span {
+    padding-block: 15px;
+  }
+
+  .range {
+    height: 32px;
+  }
+
+  .range::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+    margin-top: -8.5px;
+  }
+
+  .range::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
   }
 }
